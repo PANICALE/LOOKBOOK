@@ -10,12 +10,16 @@
 
 <div id="stage">
   <div id="book">
-    <div class="page" id="pageA">
-      <div class="pageInner" id="innerA"></div>
-    </div>
-    <div class="page" id="pageB">
-      <div class="pageInner" id="innerB"></div>
-    </div>
+    <!-- 모바일: 풀스크린 단면 (스와이프) -->
+    <div class="page" id="pageA"><div class="pageInner" id="innerA"></div></div>
+    <div class="page" id="pageB"><div class="pageInner" id="innerB"></div></div>
+
+    <!-- 데스크톱: 양면 스프레드 (좌/우 각각 독립적으로 넘어감) -->
+    <div class="staticHalf" id="staticLeft"><img id="imgStaticLeft"></div>
+    <div class="staticHalf" id="staticRight"><img id="imgStaticRight"></div>
+    <div class="flipHalf" id="flipBack"><img id="imgFlipBack"></div>
+    <div class="flipHalf" id="flipFront"><img id="imgFlipFront"></div>
+    <div id="spine"></div>
   </div>
 
   <div id="zoneLeft" class="zone" title="이전"><span>&#10094;</span></div>
@@ -43,6 +47,8 @@
     position: relative;
     transform-style: preserve-3d;
   }
+
+  /* ---------- 모바일: 풀스크린 단면 ---------- */
   .page{
     position: absolute;
     top: 0; left: 0;
@@ -53,40 +59,16 @@
     backface-visibility: hidden;
     transform-style: preserve-3d;
   }
-  .pageInner{
-    width: 100%; height: 100%;
-    display: flex;
-  }
+  .pageInner{ width: 100%; height: 100%; display: flex; }
   .pageInner img{
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    pointer-events: none;
+    width: 100%; height: 100%;
+    object-fit: cover; display: block; pointer-events: none;
   }
-  /* --- 데스크톱: 스프레드(좌/우 2장) --- */
-  body.mode-desktop .page{ border-radius: 4px; }
-  body.mode-desktop .pageInner{ position: relative; }
-  body.mode-desktop .pageInner img{ width: 50%; }
-  body.mode-desktop .pageInner::after{
-    content: "";
-    position: absolute;
-    top: 0; left: 50%;
-    width: 2px; height: 100%;
-    background: linear-gradient(to right, rgba(0,0,0,0.35), rgba(0,0,0,0.05));
-    transform: translateX(-1px);
-  }
-  body.mode-desktop .pageInner.single{ justify-content: center; }
-  body.mode-desktop .pageInner.single img{ width: 50%; margin: 0 auto; }
-  body.mode-desktop .pageInner.single::after{ display: none; }
-
-  /* --- 모바일: 이미지 1장 풀스크린 --- */
-  body.mode-mobile #book{ border-radius: 0; }
-  body.mode-mobile .page{ border-radius: 0; box-shadow: none; }
-  body.mode-mobile .pageInner img{ width: 100%; height: 100%; object-fit: cover; }
+  body.mode-mobile .pageInner img{ object-fit: cover; }
   body.mode-mobile .pageInner img.landscape{ object-fit: contain; }
-
   #pageB{ z-index: 1; }
   #pageA{ z-index: 2; }
+  body.mode-desktop .page{ display: none; }
 
   .flip-next{ animation: flipNext 0.6s ease-in-out forwards; transform-origin: left center; }
   .flip-prev{ animation: flipPrev 0.6s ease-in-out forwards; transform-origin: right center; }
@@ -96,6 +78,54 @@
     100% { transform: rotateY(-180deg); filter: brightness(1); }
   }
   @keyframes flipPrev{
+    0%   { transform: rotateY(0deg); filter: brightness(1); }
+    50%  { transform: rotateY(90deg); filter: brightness(0.55); }
+    100% { transform: rotateY(180deg); filter: brightness(1); }
+  }
+
+  /* ---------- 데스크톱: 양면 스프레드 ---------- */
+  body.mode-mobile .staticHalf,
+  body.mode-mobile .flipHalf,
+  body.mode-mobile #spine{ display: none; }
+
+  body.mode-desktop .staticHalf{
+    position: absolute; top: 0; width: 50%; height: 100%;
+    overflow: hidden; background: #1a1a1a; z-index: 1;
+  }
+  body.mode-desktop #staticLeft{ left: 0; border-radius: 4px 0 0 4px; }
+  body.mode-desktop #staticRight{ right: 0; border-radius: 0 4px 4px 0; }
+  body.mode-desktop .staticHalf img{ width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  body.mode-desktop .flipHalf{
+    position: absolute; top: 0; width: 50%; height: 100%;
+    overflow: hidden; background: #1a1a1a;
+    display: none;
+    backface-visibility: hidden; transform-style: preserve-3d;
+  }
+  body.mode-desktop .flipHalf img{ width: 100%; height: 100%; object-fit: cover; display: block; }
+  body.mode-desktop .flipHalf.show{ display: block; }
+  #flipBack{ z-index: 2; }
+  #flipFront{ z-index: 3; }
+
+  body.mode-desktop #spine{
+    position: absolute; top: 0; left: 50%; width: 2px; height: 100%;
+    background: linear-gradient(to right, rgba(0,0,0,0.35), rgba(0,0,0,0.05));
+    transform: translateX(-1px); z-index: 4; pointer-events: none;
+  }
+
+  /* 이미지가 홀수 개일 때 마지막 스프레드: 왼쪽만 꽉 채움 */
+  body.mode-desktop #book.single #staticRight,
+  body.mode-desktop #book.single #spine{ display: none; }
+  body.mode-desktop #book.single #staticLeft{ width: 100%; border-radius: 4px; }
+
+  .flip-next-half{ animation: flipNextHalf 0.6s ease-in-out forwards; transform-origin: left center; }
+  .flip-prev-half{ animation: flipPrevHalf 0.6s ease-in-out forwards; transform-origin: right center; }
+  @keyframes flipNextHalf{
+    0%   { transform: rotateY(0deg); filter: brightness(1); }
+    50%  { transform: rotateY(-90deg); filter: brightness(0.55); }
+    100% { transform: rotateY(-180deg); filter: brightness(1); }
+  }
+  @keyframes flipPrevHalf{
     0%   { transform: rotateY(0deg); filter: brightness(1); }
     50%  { transform: rotateY(90deg); filter: brightness(0.55); }
     100% { transform: rotateY(180deg); filter: brightness(1); }
@@ -121,27 +151,40 @@
 
 <script>
   /* ============================================================
-     ★ 이미지 URL 목록 — 여기 배열만 수정하면 됩니다.
+     ★ 이미지 URL 목록 — 번호만 바뀌는 규칙적인 경로는 아래처럼 자동 생성됩니다.
      ============================================================ */
   const BASE_URL = "https://panicale122.cafe24.com/LOOKBOOK/26FW-1/LOOKBOOK%20(";
-const START_NUM = 1;
-const END_NUM = 31; // 마지막 사진 번호로 수정
+  const START_NUM = 1;
+  const END_NUM = 31; // 마지막 사진 번호로 수정
 
-const IMAGE_URLS = [];
-for(let i = START_NUM; i <= END_NUM; i++){
-  IMAGE_URLS.push(BASE_URL + i + ").jpg");
-}
+  const IMAGE_URLS = [];
+  for(let i = START_NUM; i <= END_NUM; i++){
+    IMAGE_URLS.push(BASE_URL + i + ").jpg");
+  }
 
   const MOBILE_BREAKPOINT = 800;
   let isMobile = window.innerWidth <= MOBILE_BREAKPOINT;
-  let current = 0;
+  let current = 0;      // 모바일: 이미지 인덱스 / 데스크톱: 스프레드 인덱스
   let animating = false;
 
   const book = document.getElementById('book');
+
+  // 모바일 요소
   const pageA = document.getElementById('pageA');
   const pageB = document.getElementById('pageB');
   const innerA = document.getElementById('innerA');
   const innerB = document.getElementById('innerB');
+
+  // 데스크톱 요소
+  const staticLeft = document.getElementById('staticLeft');
+  const staticRight = document.getElementById('staticRight');
+  const imgStaticLeft = document.getElementById('imgStaticLeft');
+  const imgStaticRight = document.getElementById('imgStaticRight');
+  const flipBack = document.getElementById('flipBack');
+  const flipFront = document.getElementById('flipFront');
+  const imgFlipBack = document.getElementById('imgFlipBack');
+  const imgFlipFront = document.getElementById('imgFlipFront');
+
   const counter = document.getElementById('counter');
   const stage = document.getElementById('stage');
 
@@ -170,55 +213,75 @@ for(let i = START_NUM; i <= END_NUM; i++){
     }
   }
 
-  function buildInner(container, unitIndex){
-    container.innerHTML = '';
-    if(isMobile){
-      const img = document.createElement('img');
-img.referrerPolicy = 'no-referrer';
-img.src = IMAGE_URLS[unitIndex] || '';
-      img.addEventListener('load', function(){
-        if(img.naturalWidth > img.naturalHeight){
-          img.classList.add('landscape');
-        }
-      });
-      container.appendChild(img);
-      container.classList.remove('single');
-    } else {
-      const leftIdx = unitIndex * 2;
-      const rightIdx = unitIndex * 2 + 1;
-      const hasRight = rightIdx < IMAGE_URLS.length;
-      if(!hasRight){
-        container.classList.add('single');
-        const img = document.createElement('img');
-        img.src = IMAGE_URLS[leftIdx];
-        container.appendChild(img);
-      } else {
-        container.classList.remove('single');
-        const imgL = document.createElement('img');
-        imgL.src = IMAGE_URLS[leftIdx];
-        const imgR = document.createElement('img');
-        imgR.src = IMAGE_URLS[rightIdx];
-        container.appendChild(imgL);
-        container.appendChild(imgR);
-      }
-    }
-  }
-
   function updateCounter(){
     counter.textContent = (current + 1) + " / " + totalUnits();
   }
 
+  /* ---------- 모바일 렌더 ---------- */
+  function buildInner(container, unitIndex){
+    container.innerHTML = '';
+    const img = document.createElement('img');
+    img.referrerPolicy = 'no-referrer';
+    img.src = IMAGE_URLS[unitIndex] || '';
+    img.addEventListener('load', function(){
+      if(img.naturalWidth > img.naturalHeight){
+        img.classList.add('landscape');
+      }
+    });
+    container.appendChild(img);
+  }
+
+  /* ---------- 데스크톱 렌더 ---------- */
+  function desktopRender(){
+    const leftIdx = current * 2;
+    const rightIdx = current * 2 + 1;
+    const hasRight = rightIdx < IMAGE_URLS.length;
+
+    book.classList.toggle('single', !hasRight);
+
+    imgStaticLeft.referrerPolicy = 'no-referrer';
+    imgStaticLeft.style.transition = '';
+    imgStaticLeft.style.opacity = '1';
+    imgStaticLeft.src = IMAGE_URLS[leftIdx];
+
+    if(hasRight){
+      imgStaticRight.referrerPolicy = 'no-referrer';
+      imgStaticRight.style.transition = '';
+      imgStaticRight.style.opacity = '1';
+      imgStaticRight.src = IMAGE_URLS[rightIdx];
+    }
+  }
+
   function render(){
-    buildInner(innerA, current);
+    if(isMobile){
+      buildInner(innerA, current);
+    } else {
+      desktopRender();
+    }
     updateCounter();
   }
 
+  /* ---------- 네비게이션 ---------- */
   function goNext(){
     if(animating) return;
     if(current >= totalUnits() - 1) return;
     animating = true;
-
     const nextIndex = current + 1;
+    if(isMobile){ mobileFlipNext(nextIndex); }
+    else { desktopFlipNext(nextIndex); }
+  }
+
+  function goPrev(){
+    if(animating) return;
+    if(current <= 0) return;
+    animating = true;
+    const prevIndex = current - 1;
+    if(isMobile){ mobileFlipPrev(prevIndex); }
+    else { desktopFlipPrev(prevIndex); }
+  }
+
+  /* ---------- 모바일 플립 (기존과 동일) ---------- */
+  function mobileFlipNext(nextIndex){
     buildInner(innerB, nextIndex);
     pageB.style.zIndex = 1;
     pageA.style.zIndex = 2;
@@ -238,12 +301,7 @@ img.src = IMAGE_URLS[unitIndex] || '';
     });
   }
 
-  function goPrev(){
-    if(animating) return;
-    if(current <= 0) return;
-    animating = true;
-
-    const prevIndex = current - 1;
+  function mobileFlipPrev(prevIndex){
     buildInner(innerB, prevIndex);
     pageB.style.zIndex = 1;
     pageA.style.zIndex = 2;
@@ -258,6 +316,98 @@ img.src = IMAGE_URLS[unitIndex] || '';
       pageA.style.transform = '';
       current = prevIndex;
       buildInner(innerA, current);
+      updateCounter();
+      animating = false;
+    });
+  }
+
+  /* ---------- 데스크톱 플립: 오른쪽 페이지만 왼쪽으로 넘어감 ---------- */
+  function desktopFlipNext(nextIndex){
+    const curRightIdx = current * 2 + 1;
+    const curHasRight = curRightIdx < IMAGE_URLS.length;
+
+    if(!curHasRight){
+      current = nextIndex;
+      desktopRender();
+      updateCounter();
+      animating = false;
+      return;
+    }
+
+    const nextLeftIdx = nextIndex * 2;
+    const nextRightIdx = nextIndex * 2 + 1;
+
+    imgFlipBack.referrerPolicy = 'no-referrer';
+    imgFlipBack.src = (nextRightIdx < IMAGE_URLS.length) ? IMAGE_URLS[nextRightIdx] : IMAGE_URLS[nextLeftIdx];
+    imgFlipFront.referrerPolicy = 'no-referrer';
+    imgFlipFront.src = IMAGE_URLS[curRightIdx];
+
+    flipBack.style.left = ''; flipBack.style.right = '0';
+    flipFront.style.left = ''; flipFront.style.right = '0';
+    flipBack.classList.add('show');
+    flipFront.classList.add('show');
+    flipFront.classList.remove('flip-prev-half');
+    void flipFront.offsetWidth;
+    flipFront.classList.add('flip-next-half');
+
+    // 왼쪽 이미지는 살짝 페이드로 동시에 교체
+    imgStaticLeft.style.transition = 'opacity 0.3s ease';
+    imgStaticLeft.style.opacity = '0';
+    setTimeout(function(){
+      imgStaticLeft.src = IMAGE_URLS[nextLeftIdx];
+      imgStaticLeft.style.opacity = '1';
+    }, 280);
+
+    flipFront.addEventListener('animationend', function handler(){
+      flipFront.removeEventListener('animationend', handler);
+      flipFront.classList.remove('flip-next-half');
+      flipFront.classList.remove('show');
+      flipBack.classList.remove('show');
+      current = nextIndex;
+      desktopRender();
+      updateCounter();
+      animating = false;
+    });
+  }
+
+  /* ---------- 데스크톱 플립: 왼쪽 페이지만 오른쪽으로 넘어감 ---------- */
+  function desktopFlipPrev(prevIndex){
+    const curLeftIdx = current * 2;
+    const curRightIdx = current * 2 + 1;
+    const curHasRight = curRightIdx < IMAGE_URLS.length;
+
+    const prevLeftIdx = prevIndex * 2;
+    const prevRightIdx = prevIndex * 2 + 1;
+
+    imgFlipBack.referrerPolicy = 'no-referrer';
+    imgFlipBack.src = IMAGE_URLS[prevLeftIdx];
+    imgFlipFront.referrerPolicy = 'no-referrer';
+    imgFlipFront.src = IMAGE_URLS[curLeftIdx];
+
+    flipBack.style.right = ''; flipBack.style.left = '0';
+    flipFront.style.right = ''; flipFront.style.left = '0';
+    flipBack.classList.add('show');
+    flipFront.classList.add('show');
+    flipFront.classList.remove('flip-next-half');
+    void flipFront.offsetWidth;
+    flipFront.classList.add('flip-prev-half');
+
+    if(curHasRight){
+      imgStaticRight.style.transition = 'opacity 0.3s ease';
+      imgStaticRight.style.opacity = '0';
+      setTimeout(function(){
+        imgStaticRight.src = (prevRightIdx < IMAGE_URLS.length) ? IMAGE_URLS[prevRightIdx] : '';
+        imgStaticRight.style.opacity = '1';
+      }, 280);
+    }
+
+    flipFront.addEventListener('animationend', function handler(){
+      flipFront.removeEventListener('animationend', handler);
+      flipFront.classList.remove('flip-prev-half');
+      flipFront.classList.remove('show');
+      flipBack.classList.remove('show');
+      current = prevIndex;
+      desktopRender();
       updateCounter();
       animating = false;
     });
