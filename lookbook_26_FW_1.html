@@ -20,9 +20,6 @@
     <div class="flipHalf" id="flipBack"><img id="imgFlipBack"></div>
     <div class="flipHalf" id="flipFront"><img id="imgFlipFront"></div>
     <div id="spine"></div>
-
-    <!-- 데스크톱: 가로사진 전용 - 2페이지 전체 차지 -->
-    <div class="staticFull" id="staticFullWrap"><img id="imgStaticFull"></div>
   </div>
 
   <div id="zoneLeft" class="zone" title="이전"><span>&#10094;</span></div>
@@ -88,7 +85,6 @@
   /* ---------- 데스크톱: 양면 스프레드 (좌/우 각 절반) ---------- */
   body.mode-mobile .staticHalf,
   body.mode-mobile .flipHalf,
-  body.mode-mobile .staticFull,
   body.mode-mobile #spine{ display: none; }
 
   body.mode-desktop .staticHalf{
@@ -130,15 +126,6 @@
     50%  { transform: rotateY(90deg); filter: brightness(0.55); }
     100% { transform: rotateY(180deg); filter: brightness(1); }
   }
-
-  /* ---------- 데스크톱: 가로사진 전용(2페이지 전체) ---------- */
-  body.mode-desktop .staticFull{
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    overflow: hidden; background: #1a1a1a; border-radius: 4px; z-index: 5;
-    display: none;
-  }
-  body.mode-desktop .staticFull.show{ display: block; }
-  body.mode-desktop .staticFull img{ width: 100%; height: 100%; object-fit: contain; display: block; }
 
   .zone{
     position: absolute; top: 0; height: 100%; width: 20%;
@@ -199,25 +186,42 @@
   const imgFlipFront = document.getElementById('imgFlipFront');
   const spine = document.getElementById('spine');
 
-  // 데스크톱 요소 (가로사진 전체페이지)
-  const staticFullWrap = document.getElementById('staticFullWrap');
-  const imgStaticFull = document.getElementById('imgStaticFull');
-
   const counter = document.getElementById('counter');
   const stage = document.getElementById('stage');
 
-  function setDesktopImg(imgEl, url){
+  function setDesktopImg(imgEl, url, cropHalf){
     imgEl.referrerPolicy = 'no-referrer';
     imgEl.classList.remove('landscape');
     imgEl.src = url || '';
+    if(cropHalf){
+      imgEl.style.position = 'absolute';
+      imgEl.style.top = '0';
+      imgEl.style.width = '200%';
+      imgEl.style.height = '100%';
+      imgEl.style.objectFit = 'cover';
+      imgEl.style.left = (cropHalf === 'right') ? '-100%' : '0';
+    } else {
+      imgEl.style.position = '';
+      imgEl.style.width = '100%';
+      imgEl.style.height = '100%';
+      imgEl.style.objectFit = '';
+      imgEl.style.left = '';
+    }
     if(!url) return;
     imgEl.onload = function(){
+      // 좌우 절반 크롭 모드에서는 가로/세로 판정(letterbox)을 적용하지 않음
+      if(cropHalf) return;
       if(imgEl.naturalWidth > imgEl.naturalHeight){
         imgEl.classList.add('landscape');
       } else {
         imgEl.classList.remove('landscape');
       }
     };
+  }
+
+  // 스프레드가 "가로사진 1장을 좌우로 나눠 건 것"인지 판별
+  function isSplitSpread(sp){
+    return sp.left !== null && sp.right !== null && sp.left === sp.right;
   }
 
   /* ---------- 이미지 방향(가로/세로) 사전 확인 ---------- */
@@ -256,7 +260,7 @@
     let i = 1;
     while(i < n){
       if(orientations[i] === 'landscape'){
-        spreads.push({ type: 'full', img: i, left: null, right: null });
+        spreads.push({ type: 'full', left: i, right: i });
         i += 1;
       } else if(i + 1 < n && orientations[i+1] === 'portrait'){
         spreads.push({ type: 'pair', left: i, right: i+1 });
@@ -323,25 +327,17 @@
   function applyDesktopLayout(sp){
     imgStaticLeft.style.transition = ''; imgStaticLeft.style.opacity = '1'; imgStaticLeft.style.visibility = '';
     imgStaticRight.style.transition = ''; imgStaticRight.style.opacity = '1'; imgStaticRight.style.visibility = '';
-    book.style.transition = ''; book.style.opacity = '1';
 
-    if(sp.type === 'full'){
-      staticFullWrap.classList.add('show');
-      setDesktopImg(imgStaticFull, IMAGE_URLS[sp.img]);
-      spine.style.display = 'none';
-      return;
-    }
-
-    staticFullWrap.classList.remove('show');
-    spine.style.display = (sp.left !== null && sp.right !== null) ? '' : 'none';
+    const split = isSplitSpread(sp);
+    spine.style.display = (sp.left !== null && sp.right !== null && !isSplitSpread(sp)) ? '' : 'none';
 
     if(sp.left !== null){
-      setDesktopImg(imgStaticLeft, IMAGE_URLS[sp.left]);
+      setDesktopImg(imgStaticLeft, IMAGE_URLS[sp.left], split ? 'left' : null);
     } else {
       imgStaticLeft.style.visibility = 'hidden';
     }
     if(sp.right !== null){
-      setDesktopImg(imgStaticRight, IMAGE_URLS[sp.right]);
+      setDesktopImg(imgStaticRight, IMAGE_URLS[sp.right], split ? 'right' : null);
     } else {
       imgStaticRight.style.visibility = 'hidden';
     }
@@ -367,14 +363,7 @@
     animating = true;
     const nextIndex = current + 1;
     if(isMobile){ mobileFlipNext(nextIndex); return; }
-
-    const cur = spreadAt(current);
-    const nxt = spreadAt(nextIndex);
-    if(cur.type === 'full' || nxt.type === 'full'){
-      desktopCrossfadeTo(nextIndex);
-    } else {
-      desktopFlipNext(nextIndex);
-    }
+    desktopFlipNext(nextIndex);
   }
 
   function goPrev(){
@@ -383,14 +372,7 @@
     animating = true;
     const prevIndex = current - 1;
     if(isMobile){ mobileFlipPrev(prevIndex); return; }
-
-    const cur = spreadAt(current);
-    const prv = spreadAt(prevIndex);
-    if(cur.type === 'full' || prv.type === 'full'){
-      desktopCrossfadeTo(prevIndex);
-    } else {
-      desktopFlipPrev(prevIndex);
-    }
+    desktopFlipPrev(prevIndex);
   }
 
   /* ---------- 모바일 플립 ---------- */
@@ -434,24 +416,6 @@
     });
   }
 
-  /* ---------- 데스크톱: 가로사진(전체페이지)이 관여하는 전환 - 크로스페이드 ---------- */
-  function desktopCrossfadeTo(targetIndex){
-    book.style.transition = 'opacity 0.3s ease';
-    book.style.opacity = '0';
-    setTimeout(function(){
-      current = targetIndex;
-      desktopRender();
-      book.style.opacity = '0';
-      void book.offsetWidth;
-      book.style.transition = 'opacity 0.3s ease';
-      book.style.opacity = '1';
-      updateCounter();
-      setTimeout(function(){
-        animating = false;
-      }, 300);
-    }, 300);
-  }
-
   /* ---------- 데스크톱: 오른쪽 페이지만 왼쪽으로 넘어감 ---------- */
   function desktopFlipNext(nextIndex){
     const cur = spreadAt(current);
@@ -466,8 +430,8 @@
       return;
     }
 
-    setDesktopImg(imgFlipBack, (nxt.right !== null) ? IMAGE_URLS[nxt.right] : IMAGE_URLS[nxt.left]);
-    setDesktopImg(imgFlipFront, IMAGE_URLS[cur.right]);
+    setDesktopImg(imgFlipBack, (nxt.right !== null) ? IMAGE_URLS[nxt.right] : IMAGE_URLS[nxt.left], isSplitSpread(nxt) ? 'right' : null);
+    setDesktopImg(imgFlipFront, IMAGE_URLS[cur.right], isSplitSpread(cur) ? 'right' : null);
 
     flipBack.style.left = ''; flipBack.style.right = '0';
     flipFront.style.left = ''; flipFront.style.right = '0';
@@ -480,7 +444,7 @@
     if(cur.left === null){
       imgStaticLeft.style.transition = 'none';
       imgStaticLeft.style.opacity = '0';
-      setDesktopImg(imgStaticLeft, IMAGE_URLS[nxt.left]);
+      setDesktopImg(imgStaticLeft, IMAGE_URLS[nxt.left], isSplitSpread(nxt) ? 'left' : null);
       setTimeout(function(){
         imgStaticLeft.style.transition = 'opacity 0.3s ease';
         imgStaticLeft.style.opacity = '1';
@@ -489,7 +453,7 @@
       imgStaticLeft.style.transition = 'opacity 0.3s ease';
       imgStaticLeft.style.opacity = '0';
       setTimeout(function(){
-        setDesktopImg(imgStaticLeft, IMAGE_URLS[nxt.left]);
+        setDesktopImg(imgStaticLeft, IMAGE_URLS[nxt.left], isSplitSpread(nxt) ? 'left' : null);
         imgStaticLeft.style.opacity = '1';
       }, 280);
     }
@@ -512,8 +476,8 @@
     const prev = spreadAt(prevIndex);
     const curHasRight = cur.right !== null;
 
-    setDesktopImg(imgFlipBack, (prev.left !== null) ? IMAGE_URLS[prev.left] : '');
-    setDesktopImg(imgFlipFront, IMAGE_URLS[cur.left]);
+    setDesktopImg(imgFlipBack, (prev.left !== null) ? IMAGE_URLS[prev.left] : '', isSplitSpread(prev) ? 'left' : null);
+    setDesktopImg(imgFlipFront, IMAGE_URLS[cur.left], isSplitSpread(cur) ? 'left' : null);
 
     flipBack.style.right = ''; flipBack.style.left = '0';
     flipFront.style.right = ''; flipFront.style.left = '0';
@@ -527,13 +491,13 @@
       imgStaticRight.style.transition = 'opacity 0.3s ease';
       imgStaticRight.style.opacity = '0';
       setTimeout(function(){
-        setDesktopImg(imgStaticRight, (prev.right !== null) ? IMAGE_URLS[prev.right] : '');
+        setDesktopImg(imgStaticRight, (prev.right !== null) ? IMAGE_URLS[prev.right] : '', isSplitSpread(prev) ? 'right' : null);
         imgStaticRight.style.opacity = '1';
       }, 280);
     } else if(prev.right !== null){
       imgStaticRight.style.transition = 'none';
       imgStaticRight.style.opacity = '0';
-      setDesktopImg(imgStaticRight, IMAGE_URLS[prev.right]);
+      setDesktopImg(imgStaticRight, IMAGE_URLS[prev.right], isSplitSpread(prev) ? 'right' : null);
       setTimeout(function(){
         imgStaticRight.style.transition = 'opacity 0.3s ease';
         imgStaticRight.style.opacity = '1';
