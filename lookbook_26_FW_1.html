@@ -118,6 +118,11 @@
   body.mode-desktop #book.single #spine{ display: none; }
   body.mode-desktop #book.single #staticLeft{ width: 100%; border-radius: 4px; }
 
+  /* 첫 장(표지): 오른쪽만 꽉 채움, 왼쪽/책등 숨김 */
+  body.mode-desktop #book.cover #staticLeft,
+  body.mode-desktop #book.cover #spine{ display: none; }
+  body.mode-desktop #book.cover #staticRight{ width: 100%; border-radius: 4px; }
+
   .flip-next-half{ animation: flipNextHalf 0.6s ease-in-out forwards; transform-origin: left center; }
   .flip-prev-half{ animation: flipPrevHalf 0.6s ease-in-out forwards; transform-origin: right center; }
   @keyframes flipNextHalf{
@@ -189,7 +194,20 @@
   const stage = document.getElementById('stage');
 
   function totalUnits(){
-    return isMobile ? IMAGE_URLS.length : Math.ceil(IMAGE_URLS.length / 2);
+    if(isMobile) return IMAGE_URLS.length;
+    if(IMAGE_URLS.length === 0) return 0;
+    return 1 + Math.ceil(Math.max(0, IMAGE_URLS.length - 1) / 2);
+  }
+
+  // 데스크톱 전용: 스프레드 인덱스 u -> {left, right} 원본 이미지 인덱스
+  // u === 0 : 표지 (오른쪽에만 1장)
+  // u >= 1  : (1,2), (3,4), (5,6) ... 순서로 짝
+  function spreadIndices(u){
+    if(u === 0) return { left: null, right: (IMAGE_URLS.length > 0 ? 0 : null) };
+    const offset = 1 + (u - 1) * 2;
+    const left = offset < IMAGE_URLS.length ? offset : null;
+    const right = (offset + 1 < IMAGE_URLS.length) ? offset + 1 : null;
+    return { left, right };
   }
 
   function setMode(){
@@ -233,22 +251,23 @@
 
   /* ---------- 데스크톱 렌더 ---------- */
   function desktopRender(){
-    const leftIdx = current * 2;
-    const rightIdx = current * 2 + 1;
-    const hasRight = rightIdx < IMAGE_URLS.length;
+    const idx = spreadIndices(current);
 
-    book.classList.toggle('single', !hasRight);
+    book.classList.toggle('cover', idx.left === null);
+    book.classList.toggle('single', idx.left !== null && idx.right === null);
 
     imgStaticLeft.referrerPolicy = 'no-referrer';
     imgStaticLeft.style.transition = '';
     imgStaticLeft.style.opacity = '1';
-    imgStaticLeft.src = IMAGE_URLS[leftIdx];
+    if(idx.left !== null){
+      imgStaticLeft.src = IMAGE_URLS[idx.left];
+    }
 
-    if(hasRight){
-      imgStaticRight.referrerPolicy = 'no-referrer';
-      imgStaticRight.style.transition = '';
-      imgStaticRight.style.opacity = '1';
-      imgStaticRight.src = IMAGE_URLS[rightIdx];
+    imgStaticRight.referrerPolicy = 'no-referrer';
+    imgStaticRight.style.transition = '';
+    imgStaticRight.style.opacity = '1';
+    if(idx.right !== null){
+      imgStaticRight.src = IMAGE_URLS[idx.right];
     }
   }
 
@@ -323,8 +342,9 @@
 
   /* ---------- 데스크톱 플립: 오른쪽 페이지만 왼쪽으로 넘어감 ---------- */
   function desktopFlipNext(nextIndex){
-    const curRightIdx = current * 2 + 1;
-    const curHasRight = curRightIdx < IMAGE_URLS.length;
+    const cur = spreadIndices(current);
+    const nxt = spreadIndices(nextIndex);
+    const curHasRight = cur.right !== null;
 
     if(!curHasRight){
       current = nextIndex;
@@ -334,13 +354,10 @@
       return;
     }
 
-    const nextLeftIdx = nextIndex * 2;
-    const nextRightIdx = nextIndex * 2 + 1;
-
     imgFlipBack.referrerPolicy = 'no-referrer';
-    imgFlipBack.src = (nextRightIdx < IMAGE_URLS.length) ? IMAGE_URLS[nextRightIdx] : IMAGE_URLS[nextLeftIdx];
+    imgFlipBack.src = (nxt.right !== null) ? IMAGE_URLS[nxt.right] : IMAGE_URLS[nxt.left];
     imgFlipFront.referrerPolicy = 'no-referrer';
-    imgFlipFront.src = IMAGE_URLS[curRightIdx];
+    imgFlipFront.src = IMAGE_URLS[cur.right];
 
     flipBack.style.left = ''; flipBack.style.right = '0';
     flipFront.style.left = ''; flipFront.style.right = '0';
@@ -350,13 +367,23 @@
     void flipFront.offsetWidth;
     flipFront.classList.add('flip-next-half');
 
-    // 왼쪽 이미지는 살짝 페이드로 동시에 교체
-    imgStaticLeft.style.transition = 'opacity 0.3s ease';
-    imgStaticLeft.style.opacity = '0';
-    setTimeout(function(){
-      imgStaticLeft.src = IMAGE_URLS[nextLeftIdx];
-      imgStaticLeft.style.opacity = '1';
-    }, 280);
+    // 왼쪽 이미지 갱신: 표지(왼쪽 없음)에서 넘어가는 경우는 새로 나타나므로 페이드인만
+    if(cur.left === null){
+      imgStaticLeft.style.transition = 'none';
+      imgStaticLeft.style.opacity = '0';
+      imgStaticLeft.src = IMAGE_URLS[nxt.left];
+      setTimeout(function(){
+        imgStaticLeft.style.transition = 'opacity 0.3s ease';
+        imgStaticLeft.style.opacity = '1';
+      }, 20);
+    } else {
+      imgStaticLeft.style.transition = 'opacity 0.3s ease';
+      imgStaticLeft.style.opacity = '0';
+      setTimeout(function(){
+        imgStaticLeft.src = IMAGE_URLS[nxt.left];
+        imgStaticLeft.style.opacity = '1';
+      }, 280);
+    }
 
     flipFront.addEventListener('animationend', function handler(){
       flipFront.removeEventListener('animationend', handler);
@@ -372,17 +399,14 @@
 
   /* ---------- 데스크톱 플립: 왼쪽 페이지만 오른쪽으로 넘어감 ---------- */
   function desktopFlipPrev(prevIndex){
-    const curLeftIdx = current * 2;
-    const curRightIdx = current * 2 + 1;
-    const curHasRight = curRightIdx < IMAGE_URLS.length;
-
-    const prevLeftIdx = prevIndex * 2;
-    const prevRightIdx = prevIndex * 2 + 1;
+    const cur = spreadIndices(current);
+    const prev = spreadIndices(prevIndex);
+    const curHasRight = cur.right !== null;
 
     imgFlipBack.referrerPolicy = 'no-referrer';
-    imgFlipBack.src = IMAGE_URLS[prevLeftIdx];
+    imgFlipBack.src = (prev.left !== null) ? IMAGE_URLS[prev.left] : '';
     imgFlipFront.referrerPolicy = 'no-referrer';
-    imgFlipFront.src = IMAGE_URLS[curLeftIdx];
+    imgFlipFront.src = IMAGE_URLS[cur.left];
 
     flipBack.style.right = ''; flipBack.style.left = '0';
     flipFront.style.right = ''; flipFront.style.left = '0';
@@ -396,9 +420,17 @@
       imgStaticRight.style.transition = 'opacity 0.3s ease';
       imgStaticRight.style.opacity = '0';
       setTimeout(function(){
-        imgStaticRight.src = (prevRightIdx < IMAGE_URLS.length) ? IMAGE_URLS[prevRightIdx] : '';
+        imgStaticRight.src = (prev.right !== null) ? IMAGE_URLS[prev.right] : '';
         imgStaticRight.style.opacity = '1';
       }, 280);
+    } else if(prev.right !== null){
+      imgStaticRight.style.transition = 'none';
+      imgStaticRight.style.opacity = '0';
+      imgStaticRight.src = IMAGE_URLS[prev.right];
+      setTimeout(function(){
+        imgStaticRight.style.transition = 'opacity 0.3s ease';
+        imgStaticRight.style.opacity = '1';
+      }, 20);
     }
 
     flipFront.addEventListener('animationend', function handler(){
