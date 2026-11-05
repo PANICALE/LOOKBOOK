@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="referrer" content="no-referrer">
+<title>PANICALE 26 FW Lookbook 2</title>
+</head>
+<body>
+
+<div id="stage">
+  <div id="book">
+    <!-- 모바일: 풀스크린 단면 (스와이프) -->
+    <div class="page" id="pageA"><div class="pageInner" id="innerA"></div></div>
+    <div class="page" id="pageB"><div class="pageInner" id="innerB"></div></div>
+
+    <!-- 데스크톱: 양면 스프레드 (좌/우 각각 독립적으로 넘어감) -->
+    <div class="staticHalf" id="staticLeft"><img id="imgStaticLeft"></div>
+    <div class="staticHalf" id="staticRight"><img id="imgStaticRight"></div>
+    <div class="flipHalf" id="flipBack"><img id="imgFlipBack"></div>
+    <div class="flipHalf" id="flipFront"><img id="imgFlipFront"></div>
+    <div id="spine"></div>
+  </div>
+
+  <div id="zoneLeft" class="zone" title="이전"><span>&#10094;</span></div>
+  <div id="zoneRight" class="zone" title="다음"><span>&#10095;</span></div>
+
+  <div id="counter">1 / 1</div>
+</div>
+
+<style>
+  :root{ --bg: #111; }
+  html, body{
+    margin:0; padding:0; height:100%; width:100%;
+    background: var(--bg);
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    -webkit-user-select:none; user-select:none;
+  }
+  #stage{
+    position: relative;
+    width: 100vw; height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    perspective: 2400px;
+  }
+  #book{
+    position: relative;
+    transform-style: preserve-3d;
+  }
+
+  /* ---------- 모바일: 풀스크린 단면 ---------- */
+  .page{
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: #1a1a1a;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    overflow: hidden;
+    backface-visibility: hidden;
+    transform-style: preserve-3d;
+  }
+  .pageInner{ width: 100%; height: 100%; display: flex; }
+  .pageInner img{
+    width: 100%; height: 100%;
+    object-fit: cover; display: block; pointer-events: none;
+  }
+  body.mode-mobile .pageInner{ align-items: center; justify-content: center; }
+  body.mode-mobile .pageInner img{
+    width: min(100%, 71.59vh);
+    height: auto;
+    object-fit: contain;
+  }
+  body.mode-mobile .pageInner.paired img{ width: min(50%, 71.59vh); }
+  #pageB{ z-index: 1; }
+  #pageA{ z-index: 2; }
+  body.mode-desktop .page{ display: none; }
+
+  .flip-next{ animation: flipNext 0.6s ease-in-out forwards; transform-origin: left center; }
+  .flip-prev{ animation: flipPrev 0.6s ease-in-out forwards; transform-origin: right center; }
+  @keyframes flipNext{
+    0%   { transform: rotateY(0deg); filter: brightness(1); }
+    50%  { transform: rotateY(-90deg); filter: brightness(0.55); }
+    100% { transform: rotateY(-180deg); filter: brightness(1); }
+  }
+  @keyframes flipPrev{
+    0%   { transform: rotateY(0deg); filter: brightness(1); }
+    50%  { transform: rotateY(90deg); filter: brightness(0.55); }
+    100% { transform: rotateY(180deg); filter: brightness(1); }
+  }
+
+  /* ---------- 데스크톱: 양면 스프레드 (좌/우 각 절반) ---------- */
+  body.mode-mobile .staticHalf,
+  body.mode-mobile .flipHalf,
+  body.mode-mobile #spine{ display: none; }
+
+  body.mode-desktop .staticHalf{
+    position: absolute; top: 0; width: 50%; height: 100%;
+    overflow: hidden; background: #1a1a1a; z-index: 1;
+  }
+  body.mode-desktop #staticLeft{ left: 0; border-radius: 4px 0 0 4px; }
+  body.mode-desktop #staticRight{ right: 0; border-radius: 0 4px 4px 0; }
+  body.mode-desktop .staticHalf img{ width: 100%; height: 100%; object-fit: cover; display: block; }
+  body.mode-desktop .staticHalf img.landscape{ object-fit: contain; background: #1a1a1a; }
+
+  body.mode-desktop .flipHalf{
+    position: absolute; top: 0; width: 50%; height: 100%;
+    overflow: hidden; background: #1a1a1a;
+    display: none;
+    backface-visibility: hidden; transform-style: preserve-3d;
+  }
+  body.mode-desktop .flipHalf img{ width: 100%; height: 100%; object-fit: cover; display: block; }
+  body.mode-desktop .flipHalf img.landscape{ object-fit: contain; background: #1a1a1a; }
+  body.mode-desktop .flipHalf.show{ display: block; }
+  #flipBack{ z-index: 2; }
+  #flipFront{ z-index: 3; }
+
+  body.mode-desktop #spine{
+    position: absolute; top: 0; left: 50%; width: 2px; height: 100%;
+    background: linear-gradient(to right, rgba(0,0,0,0.35), rgba(0,0,0,0.05));
+    transform: translateX(-1px); z-index: 4; pointer-events: none;
+  }
+
+  .flip-next-half{ animation: flipNextHalf 0.6s ease-in-out forwards; transform-origin: left center; }
+  .flip-prev-half{ animation: flipPrevHalf 0.6s ease-in-out forwards; transform-origin: right center; }
+  @keyframes flipNextHalf{
+    0%   { transform: rotateY(0deg); filter: brightness(1); }
+    50%  { transform: rotateY(-90deg); filter: brightness(0.55); }
+    100% { transform: rotateY(-180deg); filter: brightness(1); }
+  }
+  @keyframes flipPrevHalf{
+    0%   { transform: rotateY(0deg); filter: brightness(1); }
+    50%  { transform: rotateY(90deg); filter: brightness(0.55); }
+    100% { transform: rotateY(180deg); filter: brightness(1); }
+  }
+
+  .zone{
+    position: absolute; top: 0; height: 100%; width: 20%;
+    display: flex; align-items: center; cursor: pointer; z-index: 10;
+    opacity: 0; transition: opacity 0.2s ease; color: #fff; font-size: 28px;
+  }
+  body.mode-desktop .zone:hover{ opacity: 0.55; }
+  body.mode-mobile .zone{ display: none; }
+  #zoneLeft{ left: 0; justify-content: flex-start; padding-left: 18px;
+    background: linear-gradient(to right, rgba(0,0,0,0.35), transparent); }
+  #zoneRight{ right: 0; justify-content: flex-end; padding-right: 18px;
+    background: linear-gradient(to left, rgba(0,0,0,0.35), transparent); }
+
+  #counter{
+    position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%);
+    color: rgba(255,255,255,0.65); font-size: 13px; letter-spacing: 0.05em; z-index: 10;
+  }
+</style>
+
+<script>
+  const BASE_URL = 'https://panicale122.cafe24.com/LOOKBOOK/26FW-2/';
+  const spreads = [
+    [null, '1'], ['2', '3'], ['4', '5'], ['6-1', '6-2'], ['7', '8'],
+    ['9-1', '9-2'], ['10-1', '10-2'], ['11', '12'], ['13-1', '13-2'],
+    ['14', '15'], ['16-1', '16-2'], ['17', '18'], ['19', '20'],
+    ['21-1', '21-2'], ['22', '23'], ['24', '25'], ['26', '27'], ['28', null], ['30', null]
+  ];
+  const mobilePages = spreads.flatMap(spread => {
+    const pages = spread.filter(Boolean);
+    return pages[0].endsWith('-1') ? [pages] : pages.map(page => [page]);
+  });
+
+  function imageUrl(page){
+    return page === null ? '' : BASE_URL + page + '.jpg';
+  }
+
+  const MOBILE_BREAKPOINT = 800;
+  let isMobile = window.innerWidth <= MOBILE_BREAKPOINT;
+  let current = 0;      // 모바일: 이미지 인덱스 / 데스크톱: 스프레드 인덱스
+  let animating = false;
+
+
+  const book = document.getElementById('book');
+
+  // 모바일 요소
+  const pageA = document.getElementById('pageA');
+  const pageB = document.getElementById('pageB');
+  const innerA = document.getElementById('innerA');
+  const innerB = document.getElementById('innerB');
+
+  // 데스크톱 요소 (양면)
+  const staticLeft = document.getElementById('staticLeft');
+  const staticRight = document.getElementById('staticRight');
+  const imgStaticLeft = document.getElementById('imgStaticLeft');
+  const imgStaticRight = document.getElementById('imgStaticRight');
+  const flipBack = document.getElementById('flipBack');
+  const flipFront = document.getElementById('flipFront');
+  const imgFlipBack = document.getElementById('imgFlipBack');
+  const imgFlipFront = document.getElementById('imgFlipFront');
+  const spine = document.getElementById('spine');
+
+  const counter = document.getElementById('counter');
+  const stage = document.getElementById('stage');
+
+  function setDesktopImg(imgEl, url, cropHalf){
+    imgEl.referrerPolicy = 'no-referrer';
+    imgEl.classList.remove('landscape');
+    imgEl.src = url || '';
+    if(cropHalf){
+      imgEl.style.position = 'absolute';
+      imgEl.style.top = '0';
+      imgEl.style.width = '200%';
+      imgEl.style.height = '100%';
+      imgEl.style.objectFit = 'cover';
+      imgEl.style.left = (cropHalf === 'right') ? '-100%' : '0';
+    } else {
+      imgEl.style.position = '';
+      imgEl.style.width = '100%';
+      imgEl.style.height = '100%';
+      imgEl.style.objectFit = '';
+      imgEl.style.left = '';
+    }
+    if(!url) return;
+    imgEl.onload = function(){
+      // 좌우 절반 크롭 모드에서는 가로/세로 판정(letterbox)을 적용하지 않음
+      if(cropHalf) return;
+      if(imgEl.naturalWidth > imgEl.naturalHeight){
+        imgEl.classList.add('landscape');
+      } else {
+        imgEl.classList.remove('landscape');
+      }
+    };
+  }
+
+  // 스프레드가 "가로사진 1장을 좌우로 나눠 건 것"인지 판별
+  function isSplitSpread(sp){
+    return sp.left !== null && sp.right !== null && sp.left === sp.right;
+  }
+
+  function spreadAt(index){
+    const [left, right] = spreads[index];
+    return { left, right };
+  }
+
+  function totalUnits(){
+    return isMobile ? mobilePages.length : spreads.length;
+  }
+
+  function setMode(){
+    isMobile = window.innerWidth <= MOBILE_BREAKPOINT;
+    document.body.classList.toggle('mode-mobile', isMobile);
+    document.body.classList.toggle('mode-desktop', !isMobile);
+    sizeBook();
+    current = Math.min(current, Math.max(0, totalUnits() - 1));
+    render();
+  }
+
+  function sizeBook(){
+    if(isMobile){
+      book.style.width = '100vw';
+      book.style.height = '100vh';
+    } else {
+      const w = Math.min(window.innerWidth * 0.86, window.innerHeight * (4464 / 3118));
+      const h = w / (4464 / 3118);
+      book.style.width = w + 'px';
+      book.style.height = h + 'px';
+    }
+  }
+
+  function updateCounter(){
+    counter.textContent = (current + 1) + " / " + totalUnits();
+  }
+
+  /* ---------- 모바일 렌더 ---------- */
+  function buildInner(container, unitIndex){
+    const pages = mobilePages[unitIndex];
+    container.classList.toggle('paired', pages.length === 2);
+    container.replaceChildren(...pages.map(page => {
+      const img = document.createElement('img');
+      img.alt = '룩북 ' + page;
+      img.referrerPolicy = 'no-referrer';
+      img.src = imageUrl(page);
+      return img;
+    }));
+  }
+
+  /* ---------- 데스크톱 렌더 ---------- */
+  function applyDesktopLayout(sp){
+    imgStaticLeft.style.transition = ''; imgStaticLeft.style.opacity = '1'; imgStaticLeft.style.visibility = '';
+    imgStaticRight.style.transition = ''; imgStaticRight.style.opacity = '1'; imgStaticRight.style.visibility = '';
+
+    const split = isSplitSpread(sp);
+    spine.style.display = (sp.left !== null && sp.right !== null && !isSplitSpread(sp)) ? '' : 'none';
+
+    if(sp.left !== null){
+      setDesktopImg(imgStaticLeft, imageUrl(sp.left), split ? 'left' : null);
+    } else {
+      imgStaticLeft.style.visibility = 'hidden';
+    }
+    if(sp.right !== null){
+      setDesktopImg(imgStaticRight, imageUrl(sp.right), split ? 'right' : null);
+    } else {
+      imgStaticRight.style.visibility = 'hidden';
+    }
+  }
+
+  function desktopRender(){
+    applyDesktopLayout(spreadAt(current));
+  }
+
+  function render(){
+    if(isMobile){
+      buildInner(innerA, current);
+    } else {
+      desktopRender();
+    }
+    updateCounter();
+  }
+
+  /* ---------- 네비게이션 ---------- */
+  function goNext(){
+    if(animating) return;
+    if(current >= totalUnits() - 1) return;
+    animating = true;
+    const nextIndex = current + 1;
+    if(isMobile){ mobileFlipNext(nextIndex); return; }
+    desktopFlipNext(nextIndex);
+  }
+
+  function goPrev(){
+    if(animating) return;
+    if(current <= 0) return;
+    animating = true;
+    const prevIndex = current - 1;
+    if(isMobile){ mobileFlipPrev(prevIndex); return; }
+    desktopFlipPrev(prevIndex);
+  }
+
+  /* ---------- 모바일 플립 ---------- */
+  function mobileFlipNext(nextIndex){
+    buildInner(innerB, nextIndex);
+    pageB.style.zIndex = 1;
+    pageA.style.zIndex = 2;
+
+    pageA.classList.remove('flip-prev');
+    void pageA.offsetWidth;
+    pageA.classList.add('flip-next');
+
+    pageA.addEventListener('animationend', function handler(){
+      pageA.removeEventListener('animationend', handler);
+      pageA.classList.remove('flip-next');
+      pageA.style.transform = '';
+      current = nextIndex;
+      buildInner(innerA, current);
+      updateCounter();
+      animating = false;
+    });
+  }
+
+  function mobileFlipPrev(prevIndex){
+    buildInner(innerB, prevIndex);
+    pageB.style.zIndex = 1;
+    pageA.style.zIndex = 2;
+
+    pageA.classList.remove('flip-next');
+    void pageA.offsetWidth;
+    pageA.classList.add('flip-prev');
+
+    pageA.addEventListener('animationend', function handler(){
+      pageA.removeEventListener('animationend', handler);
+      pageA.classList.remove('flip-prev');
+      pageA.style.transform = '';
+      current = prevIndex;
+      buildInner(innerA, current);
+      updateCounter();
+      animating = false;
+    });
+  }
+
+  /* ---------- 데스크톱: 오른쪽 페이지만 왼쪽으로 넘어감 ---------- */
+  function desktopFlipNext(nextIndex){
+    const cur = spreadAt(current);
+    const nxt = spreadAt(nextIndex);
+    const curHasRight = cur.right !== null;
+
+    if(!curHasRight){
+      current = nextIndex;
+      desktopRender();
+      updateCounter();
+      animating = false;
+      return;
+    }
+
+    setDesktopImg(imgFlipBack, (nxt.right !== null) ? imageUrl(nxt.right) : imageUrl(nxt.left), isSplitSpread(nxt) ? 'right' : null);
+    setDesktopImg(imgFlipFront, imageUrl(cur.right), isSplitSpread(cur) ? 'right' : null);
+
+    flipBack.style.left = ''; flipBack.style.right = '0';
+    flipFront.style.left = ''; flipFront.style.right = '0';
+    flipBack.classList.add('show');
+    flipFront.classList.add('show');
+    flipFront.classList.remove('flip-prev-half');
+    void flipFront.offsetWidth;
+    flipFront.classList.add('flip-next-half');
+
+    if(cur.left === null){
+      imgStaticLeft.style.transition = 'none';
+      imgStaticLeft.style.opacity = '0';
+      setDesktopImg(imgStaticLeft, imageUrl(nxt.left), isSplitSpread(nxt) ? 'left' : null);
+      setTimeout(function(){
+        imgStaticLeft.style.transition = 'opacity 0.3s ease';
+        imgStaticLeft.style.opacity = '1';
+      }, 20);
+    } else {
+      imgStaticLeft.style.transition = 'opacity 0.3s ease';
+      imgStaticLeft.style.opacity = '0';
+      setTimeout(function(){
+        setDesktopImg(imgStaticLeft, imageUrl(nxt.left), isSplitSpread(nxt) ? 'left' : null);
+        imgStaticLeft.style.opacity = '1';
+      }, 280);
+    }
+
+    flipFront.addEventListener('animationend', function handler(){
+      flipFront.removeEventListener('animationend', handler);
+      flipFront.classList.remove('flip-next-half');
+      flipFront.classList.remove('show');
+      flipBack.classList.remove('show');
+      current = nextIndex;
+      desktopRender();
+      updateCounter();
+      animating = false;
+    });
+  }
+
+  /* ---------- 데스크톱: 왼쪽 페이지만 오른쪽으로 넘어감 ---------- */
+  function desktopFlipPrev(prevIndex){
+    const cur = spreadAt(current);
+    const prev = spreadAt(prevIndex);
+    const curHasRight = cur.right !== null;
+
+    setDesktopImg(imgFlipBack, (prev.left !== null) ? imageUrl(prev.left) : '', isSplitSpread(prev) ? 'left' : null);
+    setDesktopImg(imgFlipFront, imageUrl(cur.left), isSplitSpread(cur) ? 'left' : null);
+
+    flipBack.style.right = ''; flipBack.style.left = '0';
+    flipFront.style.right = ''; flipFront.style.left = '0';
+    flipBack.classList.add('show');
+    flipFront.classList.add('show');
+    flipFront.classList.remove('flip-next-half');
+    void flipFront.offsetWidth;
+    flipFront.classList.add('flip-prev-half');
+
+    if(curHasRight){
+      imgStaticRight.style.transition = 'opacity 0.3s ease';
+      imgStaticRight.style.opacity = '0';
+      setTimeout(function(){
+        setDesktopImg(imgStaticRight, (prev.right !== null) ? imageUrl(prev.right) : '', isSplitSpread(prev) ? 'right' : null);
+        imgStaticRight.style.opacity = '1';
+      }, 280);
+    } else if(prev.right !== null){
+      imgStaticRight.style.transition = 'none';
+      imgStaticRight.style.opacity = '0';
+      setDesktopImg(imgStaticRight, imageUrl(prev.right), isSplitSpread(prev) ? 'right' : null);
+      setTimeout(function(){
+        imgStaticRight.style.transition = 'opacity 0.3s ease';
+        imgStaticRight.style.opacity = '1';
+      }, 20);
+    }
+
+    flipFront.addEventListener('animationend', function handler(){
+      flipFront.removeEventListener('animationend', handler);
+      flipFront.classList.remove('flip-prev-half');
+      flipFront.classList.remove('show');
+      flipBack.classList.remove('show');
+      current = prevIndex;
+      desktopRender();
+      updateCounter();
+      animating = false;
+    });
+  }
+
+  document.getElementById('zoneRight').addEventListener('click', goNext);
+  document.getElementById('zoneLeft').addEventListener('click', goPrev);
+
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'ArrowRight') goNext();
+    if(e.key === 'ArrowLeft') goPrev();
+  });
+
+  let touchStartX = null;
+  stage.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+  }, {passive: true});
+  stage.addEventListener('touchend', (e) => {
+    if(touchStartX === null || !isMobile) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const THRESHOLD = 40;
+    if(dx <= -THRESHOLD) goNext();
+    else if(dx >= THRESHOLD) goPrev();
+    touchStartX = null;
+  }, {passive: true});
+
+  window.addEventListener('resize', setMode);
+
+  setMode();
+</script>
+
+</body>
+</html>
